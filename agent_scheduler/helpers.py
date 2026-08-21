@@ -12,6 +12,8 @@ from typing import Callable, List, NoReturn
 import gradio as gr
 from gradio.blocks import Block, BlockContext
 
+from agent_scheduler.compat_a1111_forge.ui import get_ui_dependencies
+
 is_windows = platform.system() == "Windows"
 is_macos = platform.system() == "Darwin"
 
@@ -106,7 +108,7 @@ def detect_control_net(root: gr.Blocks, submit: gr.Button):
 
     dependencies: List[dict] = [
         x
-        for x in root.dependencies
+        for x in get_ui_dependencies(root)
         if x["trigger"] == "click" and submit._id in x["targets"]
     ]
     for d in dependencies:

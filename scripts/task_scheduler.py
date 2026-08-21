@@ -20,6 +20,7 @@ from agent_scheduler.compat_a1111_forge.paste_params import (
     register_paste_params_button,
     registered_param_bindings,
 )
+from agent_scheduler.compat_a1111_forge.ui import get_ui_dependencies, get_ui_fns
 
 from agent_scheduler.task_runner import TaskRunner, get_instance
 from agent_scheduler.helpers import log, compare_components_with_ids, get_components_by_ids, is_macos
@@ -167,7 +168,7 @@ class Script(scripts.Script):
         generate = self.generate_button
         is_img2img = self.is_img2img
         dependencies: List[dict] = [
-            x for x in root.dependencies if x["trigger"] == "click" and generate._id in x["targets"]
+            x for x in get_ui_dependencies(root) if x["trigger"] == "click" and generate._id in x["targets"]
         ]
 
         dependency: dict = None
@@ -188,7 +189,7 @@ class Script(scripts.Script):
             if self.checkpoint_dropdown is not None:
                 self.checkpoint_dropdown.change(fn=self.on_checkpoint_changed, inputs=[self.checkpoint_dropdown])
 
-            fn_block = next(fn for fn in root.fns if compare_components_with_ids(fn.inputs, dependency["inputs"]))
+            fn_block = next(fn for fn in get_ui_fns(root) if compare_components_with_ids(fn.inputs, dependency["inputs"]))
             fn = self.wrap_register_ui_task()
             inputs = fn_block.inputs.copy()
             inputs.insert(0, self.checkpoint_dropdown)
@@ -204,7 +205,7 @@ class Script(scripts.Script):
 
             if cnet_dependency is not None:
                 cnet_fn_block = next(
-                    fn for fn in root.fns if compare_components_with_ids(fn.inputs, cnet_dependency["inputs"])
+                    fn for fn in get_ui_fns(root) if compare_components_with_ids(fn.inputs, cnet_dependency["inputs"])
                 )
                 self.submit_button.click(
                     fn=UiControlNetUnit,
