@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from .base import BaseTableManager, Base
 from ..models import TaskModel
+from pydantic import Field
 
 
 class DateTime(TypeDecorator):
@@ -48,15 +49,20 @@ class TaskStatus(str, Enum):
 
 
 class Task(TaskModel):
-    script_params: bytes = None
+    """
+    script_params 以 Field(exclude=True) 排除於 dict 序列化之外，
+    此寫法在 pydantic v1 (A1111 classic) 與 v2 (Forge Neo) 皆相容，
+    取代 v1 專用的 Config.exclude 寫法。
+    script_params is excluded from dict serialization via Field(exclude=True),
+    which is compatible with both pydantic v1 (A1111 classic) and v2 (Forge Neo),
+    replacing the v1-only Config.exclude syntax.
+    """
+    script_params: bytes = Field(None, exclude=True)
     params: str
 
     def __init__(self, **kwargs):
         priority = kwargs.pop("priority", int(datetime.now(timezone.utc).timestamp() * 1000))
         super().__init__(priority=priority, **kwargs)
-
-    class Config(TaskModel.__config__):
-        exclude = ["script_params"]
 
     @staticmethod
     def from_table(table: "TaskTable"):
