@@ -13,14 +13,13 @@ from modules.cmd_args import parser
 from modules.ui import create_refresh_button
 from modules.ui_common import save_files
 from modules.sd_models import model_path
-from modules.generation_parameters_copypaste import (
-    registered_param_bindings,
-    register_paste_params_button,
-    connect_paste_params_buttons,
+from agent_scheduler.compat_a1111_forge import (
     ParamBinding,
+    connect_paste_params_buttons,
+    parse_generation_parameters,
+    register_paste_params_button,
+    registered_param_bindings,
 )
-
-from agent_scheduler.compat_a1111_forge import parse_generation_parameters
 
 from agent_scheduler.task_runner import TaskRunner, get_instance
 from agent_scheduler.helpers import log, compare_components_with_ids, get_components_by_ids, is_macos
