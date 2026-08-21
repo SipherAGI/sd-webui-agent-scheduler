@@ -13,10 +13,10 @@ from modules.cmd_args import parser
 from modules.ui import create_refresh_button
 from modules.ui_common import save_files
 from modules.sd_models import model_path
-from agent_scheduler.compat_a1111_forge import (
+from agent_scheduler.compat_a1111_forge.infotext import parse_generation_parameters
+from agent_scheduler.compat_a1111_forge.paste_params import (
     ParamBinding,
     connect_paste_params_buttons,
-    parse_generation_parameters,
     register_paste_params_button,
     registered_param_bindings,
 )

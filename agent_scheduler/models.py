@@ -8,6 +8,11 @@ from modules.api.models import (
     StableDiffusionImg2ImgProcessingAPI,
 )
 
+from agent_scheduler.compat_a1111_forge.pydantic import PYDANTIC_V2, api_task_schema_extra
+
+if PYDANTIC_V2:
+    from pydantic import ConfigDict
+
 
 def convert_datetime_to_iso_8601_with_z_suffix(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z" if dt else None
@@ -68,12 +73,13 @@ class Txt2ImgApiTaskArgs(StableDiffusionTxt2ImgProcessingAPI):
         description="The callback URL to send the result to.",
     )
 
-    class Config(StableDiffusionTxt2ImgProcessingAPI.__config__):
-        @staticmethod
-        def schema_extra(schema: Dict[str, Any], model) -> None:
-            props = schema.get("properties", {})
-            props.pop("send_images", None)
-            props.pop("save_images", None)
+    if PYDANTIC_V2:
+        model_config = ConfigDict(json_schema_extra=api_task_schema_extra)
+    else:
+        class Config(StableDiffusionTxt2ImgProcessingAPI.__config__):
+            @staticmethod
+            def schema_extra(schema: Dict[str, Any], model) -> None:
+                api_task_schema_extra(schema, model)
 
 
 class Img2ImgApiTaskArgs(StableDiffusionImg2ImgProcessingAPI):
@@ -94,12 +100,13 @@ class Img2ImgApiTaskArgs(StableDiffusionImg2ImgProcessingAPI):
         description="The callback URL to send the result to.",
     )
 
-    class Config(StableDiffusionImg2ImgProcessingAPI.__config__):
-        @staticmethod
-        def schema_extra(schema: Dict[str, Any], model) -> None:
-            props = schema.get("properties", {})
-            props.pop("send_images", None)
-            props.pop("save_images", None)
+    if PYDANTIC_V2:
+        model_config = ConfigDict(json_schema_extra=api_task_schema_extra)
+    else:
+        class Config(StableDiffusionImg2ImgProcessingAPI.__config__):
+            @staticmethod
+            def schema_extra(schema: Dict[str, Any], model) -> None:
+                api_task_schema_extra(schema, model)
 
 
 class QueueTaskResponse(BaseModel):
