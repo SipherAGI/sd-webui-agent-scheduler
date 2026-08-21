@@ -15,6 +15,7 @@ try:
     from modules.infotext_utils import (
         ParamBinding,
         connect_paste_params_buttons,
+        create_override_settings_dict,
         register_paste_params_button,
         registered_param_bindings,
     )
@@ -22,6 +23,7 @@ except ImportError:
     from modules.generation_parameters_copypaste import (
         ParamBinding,
         connect_paste_params_buttons,
+        create_override_settings_dict,
         register_paste_params_button,
         registered_param_bindings,
     )
