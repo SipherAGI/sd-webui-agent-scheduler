@@ -1,5 +1,7 @@
 """gradio UI 相依結構的版本相容工具 / Version-compatible utilities for gradio UI dependency structures"""
 
+import json
+
 from typing import Any, Dict, List
 
 """
@@ -57,3 +59,45 @@ def get_ui_fns(root: Any) -> List[Any]:
     if isinstance(fns, dict):
         return list(fns.values())
     return list(fns) if fns else []
+
+
+def get_ui_task_geninfo(result: Any) -> Any:
+    """從 txt2img / img2img 的 UI 回傳元組中取出 generation info JSON 字串 / Extract the generation info JSON string from a txt2img / img2img UI result tuple
+
+    A1111 回傳 (images, geninfo, html_info, comments)，geninfo 位於索引 1。
+    Forge 回傳 (gallery, video_arg, geninfo, html_info, comments)，geninfo 位於索引 2。
+    以「字串且可解析為 JSON」定位 geninfo，因此兩種結構皆相容。
+    A1111 returns (images, geninfo, html_info, comments) with geninfo at index 1.
+    Forge returns (gallery, video_arg, geninfo, html_info, comments) with geninfo at index 2.
+    The geninfo is located by being a string parseable as JSON, so both structures work.
+
+    @param result - wrap_gradio_call 的回傳元組 / result tuple from wrap_gradio_call
+    @returns geninfo JSON 字串；找不到時回傳 None / geninfo JSON string, or None if not found
+    """
+    for item in result[1:]:
+        if isinstance(item, str):
+            try:
+                json.loads(item)
+                return item
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+def get_ui_task_error_text(result: Any) -> str:
+    """從 UI 回傳元組中取出錯誤/資訊文字（排除 geninfo）/ Get the error / info text from the UI result tuple (excluding geninfo)
+
+    A1111 將錯誤資訊放在索引 2（html_info），Forge 則依例外或正常回傳路徑
+    分別位於索引 1（exception fallback 的 ""）或索引 3（html_info）。
+    此函式收集除 geninfo 以外的所有字串元素，讓呼叫端可針對
+    "CUDA out of memory" 等訊息做檢查，而不需理會各版本的索引差異。
+    A1111 places error info at index 2 (html_info); Forge places it at index 1
+    (the "" in the exception fallback) or index 3 (html_info) depending on path.
+    This collects every string element except geninfo so callers can scan for
+    messages such as "CUDA out of memory" without caring about per-version indexes.
+
+    @param result - wrap_gradio_call 的回傳元組 / result tuple from wrap_gradio_call
+    @returns 合併後的錯誤/資訊文字 / the concatenated error / info text
+    """
+    geninfo = get_ui_task_geninfo(result)
+    return "\n".join(item for item in result[1:] if isinstance(item, str) and item != geninfo)

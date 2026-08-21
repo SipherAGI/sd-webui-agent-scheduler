@@ -34,6 +34,7 @@ from .helpers import (
     is_macos,
     _exit,
 )
+from .compat_a1111_forge.ui import get_ui_task_error_text, get_ui_task_geninfo
 from .task_helpers import (
     encode_image_to_base64,
     serialize_img2img_image_args,
@@ -540,11 +541,10 @@ class TaskRunner:
                 result = func(*args)
                 if result[0] is None and hasattr(shared.state, "oom") and shared.state.oom:
                     res = OutOfMemoryError()
-                elif "CUDA out of memory" in result[2]:
+                elif "CUDA out of memory" in get_ui_task_error_text(result):
                     res = OutOfMemoryError()
                 else:
-                    res = result[1]
-
+                    res = get_ui_task_geninfo(result)
 
             except Exception as e:
                 res = e
