@@ -73,6 +73,26 @@ class Txt2ImgApiTaskArgs(StableDiffusionTxt2ImgProcessingAPI):
         description="The callback URL to send the result to.",
     )
 
+    """
+    依 pydantic 版本選擇 schema 過濾的掛載方式 / Choose schema-filter mounting by pydantic version
+
+    PYDANTIC_V2 旗標決定 pydantic 設定寫法，而過濾邏輯本身
+    統一由 api_task_schema_extra 提供：
+    The PYDANTIC_V2 flag decides the pydantic config style, while the
+    filtering logic itself is always provided by api_task_schema_extra:
+
+    - pydantic v2 (Forge Neo)：以 model_config + ConfigDict(json_schema_extra=)
+      直接引用函式，pydantic 會以 (schema, model) 呼叫它。
+      pydantic v2 (Forge Neo): reference the function directly via
+      model_config + ConfigDict(json_schema_extra=); pydantic calls it with (schema, model).
+    - pydantic v1 (A1111 classic)：需透過 Config.schema_extra 靜態方法包裝，
+      再轉呼叫相同的 api_task_schema_extra。
+      pydantic v1 (A1111 classic): wrap it via the Config.schema_extra static method,
+      which then calls the same api_task_schema_extra.
+
+    兩者執行的是同一段欄位移除邏輯（移除 send_images / save_images）。
+    Both execute the same field-removal logic (removing send_images / save_images).
+    """
     if PYDANTIC_V2:
         model_config = ConfigDict(json_schema_extra=api_task_schema_extra)
     else:
@@ -100,6 +120,14 @@ class Img2ImgApiTaskArgs(StableDiffusionImg2ImgProcessingAPI):
         description="The callback URL to send the result to.",
     )
 
+    """
+    依 pydantic 版本選擇 schema 過濾的掛載方式 / Choose schema-filter mounting by pydantic version
+
+    與 Txt2ImgApiTaskArgs 相同的版本判斷：v2 用 model_config，
+    v1 用 Config.schema_extra 包裝，兩者共用 api_task_schema_extra。
+    Same version branching as Txt2ImgApiTaskArgs: v2 uses model_config,
+    v1 wraps via Config.schema_extra, both share api_task_schema_extra.
+    """
     if PYDANTIC_V2:
         model_config = ConfigDict(json_schema_extra=api_task_schema_extra)
     else:
