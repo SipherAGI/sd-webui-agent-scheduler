@@ -384,9 +384,12 @@ class TaskRunner:
 
                     def _output_to_root_task(key: str):
                         name = Path(shared_opts_backup.get_backup_value(key)).name
-                        shared_opts_backup.set_shared_opts_core(key, outdir_path_root_task.joinpath(name))
+                        outdir = outdir_path_root_task.joinpath(name)
+                        shared_opts_backup.set_shared_opts_core(key, outdir)
+                        os.makedirs(outdir, exist_ok=True)
 
                     shared_opts_backup.set_shared_opts_core(key_samples, outdir_path_samples_new)
+                    os.makedirs(outdir_path_samples_new, exist_ok=True)
 
                     _output_to_root_task(key_grids)
                     _output_to_root_task("outdir_init_images")
