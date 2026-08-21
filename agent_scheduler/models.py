@@ -31,7 +31,7 @@ class TaskModel(BaseModel):
     id: str = Field(title="Task Id")
     api_task_id: Optional[str] = Field(title="API Task Id", default=None)
     api_task_callback: Optional[str] = Field(title="API Task Callback", default=None)
-    name: Optional[str] = Field(title="Task Name")
+    name: Optional[str] = Field(title="Task Name", default=None)
     type: str = Field(title="Task Type", description="Either txt2img or img2img")
     status: str = Field(
         "pending",
@@ -39,10 +39,10 @@ class TaskModel(BaseModel):
         description="Either pending, running, done or failed",
     )
     params: Dict[str, Any] = Field(title="Task Parameters", description="The parameters of the task in JSON format")
-    priority: Optional[int] = Field(title="Task Priority")
-    position: Optional[int] = Field(title="Task Position")
-    result: Optional[str] = Field(title="Task Result", description="The result of the task in JSON format")
-    bookmarked: Optional[bool] = Field(title="Is task bookmarked")
+    priority: Optional[int] = Field(title="Task Priority", default=None)
+    position: Optional[int] = Field(title="Task Position", default=None)
+    result: Optional[str] = Field(title="Task Result", description="The result of the task in JSON format", default=None)
+    bookmarked: Optional[bool] = Field(title="Is task bookmarked", default=None)
     created_at: Optional[datetime] = Field(
         title="Task Created At",
         description="The time when the task was created",

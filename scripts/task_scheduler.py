@@ -182,7 +182,7 @@ class Script(scripts.Script):
                     cnet_dependency = d
                     UiControlNetUnit = type(output.value)
 
-            elif len(d["outputs"]) == 4:
+            elif len(d["outputs"]) >= 4:
                 dependency = d
 
         with root:

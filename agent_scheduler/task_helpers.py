@@ -253,7 +253,7 @@ def map_ui_task_args_list_to_named_args(args: List, is_img2img: bool):
     named_args = dict(zip(arg_names, args[0 : len(arg_names)]))
     script_args = args[len(arg_names) :]
 
-    override_settings_texts: List[str] = named_args.get("override_settings_texts", [])
+    override_settings_texts: List[str] = named_args.get("override_settings_texts") or []
     # add clip_skip if not exist in args (vlad fork has this arg)
     if named_args.get("clip_skip", None) is None:
         clip_skip = next((s for s in override_settings_texts if s.startswith("Clip skip:")), None)
