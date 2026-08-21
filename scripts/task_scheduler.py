@@ -17,9 +17,10 @@ from modules.generation_parameters_copypaste import (
     registered_param_bindings,
     register_paste_params_button,
     connect_paste_params_buttons,
-    parse_generation_parameters,
     ParamBinding,
 )
+
+from agent_scheduler.compat_a1111_forge import parse_generation_parameters
 
 from agent_scheduler.task_runner import TaskRunner, get_instance
 from agent_scheduler.helpers import log, compare_components_with_ids, get_components_by_ids, is_macos
