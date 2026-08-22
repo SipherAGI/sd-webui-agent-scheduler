@@ -1,5 +1,12 @@
 # Agent Scheduler
 
+> **Supported environments**
+>
+> - **AUTOMATIC1111 Stable Diffusion Web UI**: https://github.com/AUTOMATIC1111/stable-diffusion-webui
+> - **Forge Neo (sd-webui-forge-classic)**: https://github.com/Haoming02/sd-webui-forge-classic
+>
+> This extension is compatible with both the AUTOMATIC1111 WebUI and the Forge Neo (sd-webui-forge-classic) fork. Version-specific differences (gradio, pydantic, module locations) are handled internally via the `agent_scheduler/compat_a1111_forge` compatibility layer.
+
 Introducing AgentScheduler, an A1111/Vladmandic Stable Diffusion Web UI extension to power up your image generation workflow!
 
 ## Table of Content
