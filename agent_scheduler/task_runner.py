@@ -356,6 +356,18 @@ class TaskRunner:
                 shared_opts_backup.set_shared_opts(samples_save=True, grid_save=True)
 
                 def change_output_dir():
+                    # 將本次任務的產圖輸出導向獨立子目錄，避免與使用者一般產圖混在一起；
+                    # 並在結束後由 restore_shared_opts() 還原為原始設定。
+                    # Redirect this task's image output into an isolated sub-directory so it
+                    # does not mix with the user's normal outputs; shared_opts are restored
+                    # afterwards by restore_shared_opts().
+                    #
+                    # 路徑一律先以「相對 CWD、含 '..'」的方式組裝，直到寫入 shared.opts
+                    # （set_shared_opts_core 內）才真正展開，以避免 CWD 位於 junction 捷徑時
+                    # 超過 Windows MAX_PATH=260 而存圖失敗（see set_shared_opts_core 設計說明）。
+                    # All paths are assembled as "CWD-relative, with '..' " here and only
+                    # expanded when written into shared.opts, to avoid exceeding MAX_PATH when
+                    # the CWD lives on a junction symlink (see set_shared_opts_core rationale).
                     if is_img2img:
                         key_samples = "outdir_img2img_samples"
                         key_grids = "outdir_img2img_grids"
@@ -363,13 +375,21 @@ class TaskRunner:
                         key_samples = "outdir_txt2img_samples"
                         key_grids = "outdir_txt2img_grids"
 
+                    # 取任務開始前的原始 samples 目錄（相對路徑，可能含 '..'），作為新目錄的基準
+                    # Take the pre-task original samples dir (relative, may contain '..') as the
+                    # base for composing the new directory tree.
                     outdir_path_samples_old = Path(shared_opts_backup.get_backup_value(key_samples))
 
+                    # 上層目錄 = samples 再往上兩層（joinpath('..') 一次）後加 'agent-scheduler'
+                    # Parent root = samples dir, go up one level then append 'agent-scheduler'.
                     outdir_path_root_top = outdir_path_samples_old.joinpath('..')
                     outdir_path_root = outdir_path_root_top.joinpath('agent-scheduler')
 
                     outdir_path_root_task = outdir_path_root
 
+                    # save_to_dirs 預設關閉：改用「時間戳_任務ID」子目錄隔離，而非目錄分類命名
+                    # save_to_dirs is off by default: isolate via a "timestamp_taskID" subdir
+                    # instead of per-category directory naming.
                     save_to_dirs = False
                     if save_to_dirs:
                         directories_filename_pattern_new = "[datetime<%Y-%m-%d_%H-%M-%S>]_" + str(task_id)
@@ -381,8 +401,17 @@ class TaskRunner:
 
                         outdir_path_root_task = outdir_path_root.joinpath(outdir_label)
 
+                    # 新 samples 目錄 = 任務根目錄 + 原 samples 目錄名（保留原資料夾命名）
+                    # New samples dir = task root + original samples dir name (keep original naming).
                     outdir_path_samples_new = outdir_path_root_task.joinpath(outdir_path_samples_old.name)
 
+                    # 將任一 outdir key 指向「任務根目錄 + 原目錄名」，並建立該資料夾。
+                    # 用 set_shared_opts_core 的回傳值（已展開為絕對路徑）做 makedirs，
+                    # 確保磁碟上建立的目錄與實際寫入 shared.opts 的值完全一致。
+                    # Point any outdir key to "task root + original dir name" and create it.
+                    # Use the return value of set_shared_opts_core (already expanded to an
+                    # absolute path) for makedirs so the on-disk directory matches what is
+                    # actually stored in shared.opts.
                     def _output_to_root_task(key: str):
                         name = Path(shared_opts_backup.get_backup_value(key)).name
                         outdir = outdir_path_root_task.joinpath(name)
@@ -397,17 +426,27 @@ class TaskRunner:
                     _output_to_root_task("outdir_init_images")
                     _output_to_root_task("ad_save_images_dir")
 
+                    # 網格（grid）一律輸出：僅多張時產生，並避免空白格
+                    # Always emit grids: only when multiple images, and avoid empty slots.
                     shared_opts_backup.set_shared_opts_core("grid_only_if_multiple", True)
                     shared_opts_backup.set_shared_opts_core("grid_prevent_empty_spots", True)
 
+                    # 關閉目錄分類命名，改用統一的子目錄隔離
+                    # Disable per-category directory naming; rely on the unified subdir above.
                     shared_opts_backup.set_shared_opts_core("save_to_dirs", save_to_dirs)
                     shared_opts_backup.set_shared_opts_core("grid_save_to_dirs", save_to_dirs)
 
+                    # ControlNet 偵測圖輸出目錄刻意保持相對（../detected_maps），
+                    # set_shared_opts_core 會跳過它不展開絕對路徑
+                    # ControlNet detected-map dir is intentionally kept relative (../detected_maps);
+                    # set_shared_opts_core skips absolute expansion for this key.
                     control_net_detectedmap_dir = Path("..").joinpath("detected_maps")
 
                     shared_opts_backup.set_shared_opts_core("control_net_detectedmap_dir", control_net_detectedmap_dir)
                     shared_opts_backup.set_shared_opts_core("control_net_detectmap_autosaving", True)
 
+                    # 產圖附屬檔案輸出開關（遮罩、文字、pnginfo 等）
+                    # Toggle auxiliary output (mask, txt, pnginfo, previews, …).
                     shared_opts_backup.set_shared_opts_core("save_mask", True)
                     shared_opts_backup.set_shared_opts_core("save_mask_composite", True)
 
@@ -531,6 +570,12 @@ class TaskRunner:
             )
 
     def __execute_ui_task(self, task_id: str, is_img2img: bool, *args):
+        # 用 wrap_gradio_call 包裹 txt2img/img2img；其回傳為 tuple，但不同 sd-webui
+        # 版本結構不同（A1111 的 geninfo 在第 1 位、Forge 在第 2 位），由 compat
+        # 模組的 get_ui_task_geninfo / get_ui_task_error_text 統一抽取。
+        # Wrap txt2img/img2img with wrap_gradio_call; it returns a tuple whose layout
+        # differs across sd-webui versions (A1111 puts geninfo at index 1, Forge at 2).
+        # get_ui_task_geninfo / get_ui_task_error_text abstract that difference away.
         func = wrap_gradio_call(img2img if is_img2img else txt2img, add_stats=True)
 
         with queue_lock:
@@ -540,11 +585,20 @@ class TaskRunner:
             res = None
             try:
                 result = func(*args)
+                # 圖片陣列為空（result[0] is None）時可能是 OOM：
+                # 1) Forge 的 State 沒有 oom 屬性，需先 hasattr 保護；2) 同時檢查錯誤文字，
+                #    因為 wrap_gradio_call 例外時會回退成 [None, '', error_div]。
+                # Empty image array (result[0] is None) may indicate OOM:
+                # 1) Forge's State has no 'oom' attribute, so guard with hasattr first;
+                # 2) also check the error text because wrap_gradio_call falls back to
+                #    [None, '', error_div] on exception.
                 if result[0] is None and hasattr(shared.state, "oom") and shared.state.oom:
                     res = OutOfMemoryError()
                 elif "CUDA out of memory" in get_ui_task_error_text(result):
                     res = OutOfMemoryError()
                 else:
+                    # 成功：抽出 generation info（字串或 dict，下游自行處理）
+                    # Success: extract generation info (str or dict; handled downstream).
                     res = get_ui_task_geninfo(result)
 
             except Exception as e:

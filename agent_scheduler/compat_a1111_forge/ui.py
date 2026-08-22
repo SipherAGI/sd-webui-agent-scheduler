@@ -74,6 +74,11 @@ def get_ui_task_geninfo(result: Any) -> Any:
     @param result - wrap_gradio_call 的回傳元組 / result tuple from wrap_gradio_call
     @returns geninfo JSON 字串；找不到時回傳 None / geninfo JSON string, or None if not found
     """
+    # 從第 2 個元素開始掃描：geninfo 是「可解析為 JSON 的字串」。
+    # 用 json.loads 探測而非寫死索引，因此 A1111 (idx 1) 與 Forge (idx 2) 皆相容。
+    # Scan from the 2nd element onward: geninfo is "a string parseable as JSON".
+    # Probing with json.loads (instead of hard-coding indices) keeps A1111 (idx 1)
+    # and Forge (idx 2) both compatible.
     for item in result[1:]:
         if isinstance(item, str):
             try:
@@ -100,4 +105,7 @@ def get_ui_task_error_text(result: Any) -> str:
     @returns 合併後的錯誤/資訊文字 / the concatenated error / info text
     """
     geninfo = get_ui_task_geninfo(result)
+    # 收集合併除 geninfo 以外的所有字串，讓呼叫端能以單一字串掃描 OOM 等錯誤訊息
+    # Collect and join every string except geninfo so callers can scan one string for
+    # errors such as "CUDA out of memory".
     return "\n".join(item for item in result[1:] if isinstance(item, str) and item != geninfo)
