@@ -73,6 +73,11 @@ class SharedOptsBackup:
             The key of the shared option to be set.
         value : any
             The value to be set for the shared option.
+
+        Returns
+        -------
+        The final stored value; path-like values are expanded (junction /
+        symlink resolved, made absolute) before storing.
         """
         if not self.is_backup_exists(key):
             old = getattr(self.shared_opts, key, None)
@@ -82,12 +87,15 @@ class SharedOptsBackup:
         if isinstance(value, (Path, PurePath)):
             if key != "control_net_detectedmap_dir":
                 value = simplify_path(value)
+                value = value.resolve()
 
             value = str(value.as_posix())
 
         self.shared_opts.set(key, value)
         if self.backup[key] != value:
             print(f"\33[32m[AgentScheduler] [change] {key}: {value}\33[0m")
+
+        return value
 
     def set_shared_opts(self, **kwargs):
         """
